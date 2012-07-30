@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html ng-app="myApp">
+<head>
+  <meta charset="utf-8">
+  <title>AngularJS + D3.js</title>
+  <script src="http://d3js.org/d3.v2.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.1/angular.js"></script>
+  <style>
+    body {
+      font: 14px Helvetica Neue;
+      text-rendering: optimizeLegibility;
+      margin-top: 1em;
+      overflow-y: scroll;
+    }
+
+    a {
+      color: steelblue;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .body {
+      width: 960px;
+      margin: auto;
+    }
+
+    .topbar a {
+      margin-right: .5em;
+    }
+
+    .content {
+      position: relative;
+      margin-left: 240px;
+    }
+
+    .content img {
+      display: block;
+      margin: auto;
+    }
+
+    .sidebar {
+      position: absolute;
+      left: -240px;
+      width: 230px;
+      font-weight: 300;
+    }
+
+    .gallery {
+      position: relative;
+      left: -240px;
+      width: 970px;
+    }
+
+    .content .gallery img {
+      display: inline;
+      width: 226px;
+      height: 180px;
+      border: solid 2px #ccc;
+      margin-right: 10px;
+      margin-bottom: 8px;
+    }
+
+    .content .gallery a:hover img {
+      border-color: steelblue;
+    }
+
+    .list {
+      clear: left;
+      margin-top: 14px;
+    }
+
+    .list img {
+      float: left;
+    }
+
+    h1 {
+      font-size: 36px;
+      font-weight: 300;
+      margin-bottom: .3em;
+    }
+
+    .sidebar {
+      color: #666;
+    }
+
+    .sidebar ul {
+      padding-left: 0;
+      list-style-type: none;
+    }
+
+    .sidebar li {
+      white-space: nowrap;
+      width: 230px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sidebar h3 {
+      font-weight: 300;
+    }
+
+    .foot {
+      font-weight: 300;
+      margin-left: 240px;
+      padding-top: 3em;
+      width: 710px;
+      clear: both;
+    }
+
+    button {
+      background: #222 url(button-overlay.png) repeat-x;
+      font: 12px Helvetica Neue;
+      color: #fff;
+      text-shadow: 0 -1px 1px #222;
+      padding: 6px 10px 6px 10px;
+      border: 0;
+      border-bottom: 1px solid #222;
+      min-width: 80px;
+      -moz-border-radius: 5px;
+      -moz-box-shadow: 0 1px 3px #999;
+      -webkit-border-radius: 5px;
+      -webkit-box-shadow: 0 1px 3px #999;
+    }
+
+    button:hover {
+      background-color: #555;
+    }
+
+    .highlight {
+      font: 12px monospace;
+    }
+
+    .highlight pre {
+      overflow-x: auto;
+    }
+  </style>
+  <script>
+    // create module for custom directives
+    var app = angular.module('myApp', []);
+
+    // register d3 as a service so we can inject it
+    app.factory('d3', function () {
+      return window.d3; //TODO: ask Igor how I should reference the D3 global
+    });
+
+    app.directive('visualization', function (d3) {
+
+      return {
+        restrict: 'E',
+        terminal: true,
+        scope: {
+          val: '=val',
+          grouped: '=grouped'
+        },
+        link: function (scope, element, attrs) {
+
+          var margin = 20,
+              width = 960,
+              height = 500 - .5 - margin;
+
+          // set up initial svg object
+          var vis = d3.select(element[0])
+            .append("svg")
+              .attr("width", width)
+              .attr("height", height + margin + 100);
+
+          scope.$watch('val', function (newVal, oldVal) {
+
+            // remove and redraw
+            vis.selectAll('*').remove();
+
+            if (!newVal) {
+              return;
+            }
+
+            // Based on: http://mbostock.github.com/d3/ex/stack.html
+
+            var n = newVal.length, // number of layers
+                m = newVal[0].length, // number of samples per layer
+                data = d3.layout.stack()(newVal),
+                color = d3.interpolateRgb("#aad", "#556");
+            
+            var mx = m,
+                my = d3.max(data, function(d) {
+                  return d3.max(d, function(d) {
+                    return d.y0 + d.y;
+                  });
+                }),
+                mz = d3.max(data, function(d) {
+                  return d3.max(d, function(d) {
+                    return d.y;
+                  });
+                }),
+                x = function(d) { return d.x * width / mx; },
+                y0 = function(d) { return height - d.y0 * height / my; },
+                y1 = function(d) { return height - (d.y + d.y0) * height / my; },
+                y2 = function(d) { return d.y * height / mz; }; // or `my` not rescale
+            
+            var layers = vis.selectAll("g.layer")
+                .data(data)
+              .enter().append("g")
+                .style("fill", function(d, i) {
+                  return color(i / (n - 1));
+                })
+                .attr("class", "layer");
+            
+            var bars = layers.selectAll("g.bar")
+                .data(function(d) { return d; })
+              .enter().append("g")
+                .attr("class", "bar")
+                .attr("transform", function(d) {
+                  return "translate(" + x(d) + ",0)";
+                });
+            
+            bars.append("rect")
+                .attr("width", x({x: .9}))
+                .attr("x", 0)
+                .attr("y", height)
+                .attr("height", 0)
+              .transition()
+                .delay(function(d, i) { return i * 10; })
+                .attr("y", y1)
+                .attr("height", function(d) {
+                  return y0(d) - y1(d);
+                });
+            
+            var labels = vis.selectAll("text.label")
+                .data(data[0])
+              .enter().append("text")
+                .attr("class", "label")
+                .attr("x", x)
+                .attr("y", height + 6)
+                .attr("dx", x({x: .45}))
+                .attr("dy", ".71em")
+                .attr("text-anchor", "middle")
+                .text(function(d, i) {
+                  return d.date;
+                });
+            
+            vis.append("line")
+                .attr("x1", 0)
+                .attr("x2", width - x({x: .1}))
+                .attr("y1", height)
+                .attr("y2", height);
+
+
+            // Animate between grouped and stacked
+            // ===================================
+            function transitionGroup() {
+              vis.selectAll("g.layer rect")
+                .transition()
+                  .duration(500)
+                  .delay(function(d, i) { return (i % m) * 10; })
+                  .attr("x", function(d, i) { return x({x: .9 * ~~(i / m) / n}); })
+                  .attr("width", x({x: .9 / n}))
+                  .each("end", transitionEnd);
+            
+              function transitionEnd() {
+                d3.select(this)
+                  .transition()
+                    .duration(500)
+                    .attr("y", function(d) { return height - y2(d); })
+                    .attr("height", y2);
+              }
+            }
+
+            function transitionStack() {
+              vis.selectAll("g.layer rect")
+                .transition()
+                  .duration(500)
+                  .delay(function(d, i) { return (i % m) * 10; })
+                  .attr("y", y1)
+                  .attr("height", function(d) {
+                    return y0(d) - y1(d);
+                  })
+                  .each("end", transitionEnd);
+            
+              function transitionEnd() {
+                d3.select(this)
+                  .transition()
+                    .duration(500)
+                    .attr("x", 0)
+                    .attr("width", x({x: .9}));
+              }
+            }
+
+            scope.grouped = false;
+            scope.$watch('grouped', function (newVal, oldVal) {
+              if (newVal === oldVal) {
+                return;
+              }
+              if (newVal) {
+                transitionGroup();
+              } else {
+                transitionStack();
+              }
+            });
+          });
+        }
+      }
+    });
+
+    // controller business logic
+    app.controller('AppCtrl', function ($scope, $http) {
+
+      $scope.user = 'btford';
+      $scope.repo = 'angular.js';
+
+      // helper for formatting date
+      var humanReadableDate = function (d) {
+        return d.getUTCMonth() + '/' + d.getUTCDay();
+      };
+
+      $scope.getTheData = function () {
+        $http({
+          method: 'GET',
+          url:'https://api.github.com/repos/' +
+            $scope.user +
+            '/' +
+            $scope.repo +
+            '/commits'
+        }).
+        success(function (data) {
+
+          data = data.sort(function (a, b) {
+            if (new Date(a.commit.author.date) > new Date(b.commit.author.date)) {
+              return -1;
+            } else {
+              return 1;
+            }
+          });
+
+          var date0 = new Date(data[data.length - 1].commit.author.date);
+          var dateN = new Date(data[0].commit.author.date);
+
+          var days = Math.floor((dateN - date0)/(1000 * 3600 * 24)) + 1;
+
+          var lastDay;
+          var uniqueUsers = [];
+          idMap = {};
+          data.forEach(function (datum) {
+            var name = datum.commit.author.name;
+            if (uniqueUsers.indexOf(name) === -1) {
+              idMap[name] = uniqueUsers.length;
+              uniqueUsers.push(name);
+            }
+          });
+
+          var fin = [];
+          fin.length = uniqueUsers.length;
+          var i, j;
+          for (i = 0; i < fin.length; i++) {
+            fin[i] = [];
+            fin[i].length = days;
+            for (j = 0; j < fin[i].length; j++) {
+              fin[i][j] = {
+                x: j,
+                y: 0
+              };
+            }
+          }
+
+          data.forEach(function (datum) {
+            var date = new Date(datum.commit.author.date);
+            var curDay = Math.floor((date - date0)/(1000 * 3600 * 24));
+            fin[idMap[datum.commit.author.name]][curDay].y += 1;
+            fin[0][curDay].date = humanReadableDate(date);
+          });
+          $scope.data = fin;
+          $scope.error = '';
+        }).
+        error(function (data, status) {
+          $scope.error = 'Error: ' + status;
+        });
+      };
+
+      // populate it immediately
+      $scope.getTheData();
+    });
+  </script>
+</head>
+<body ng-controller="AppCtrl">
+  <h1>Github Commit Graph</h1>
+
+  <p>
+    User: <input ng-change="getTheData()" ng-model="user"></input>
+    Repo: <input ng-change="getTheData()" ng-model="repo"></input>
+    Grouped <input type="checkbox" ng-model="grouped">
+  </p>
+
+  
+  <!-- Here's where our visualization will go -->
+  <p ng-hide="error">
+    <visualization val="data" grouped="grouped"></visualization>
+  </p>
+
+  <p>{{error}}</p>
+
+</body>
+</html>
