@@ -134,16 +134,47 @@
                 .text(function(d, i) {
                   return d.date;
                 });
-            
-            vis.append("line")
-                .attr("x1", 0)
-                .attr("x2", width - x({x: .1}))
-                .attr("y1", height)
-                .attr("y2", height);
+
+            // Chart Key
+            // =========
+
+            var keyText = vis.selectAll("text.key")
+                .data(data)
+              .enter().append("text")
+                .attr("class", "key")
+                .attr("y", function (d, i) {
+                  return height + 42 + 30*(i%3);
+                })
+                .attr("x", function (d, i) {
+                  return 155 * Math.floor(i/3) + 15;
+                })
+                .attr("dx", x({x: .45}))
+                .attr("dy", ".71em")
+                .attr("text-anchor", "left")
+                .text(function(d, i) {
+                  return d[0].user;
+                });
+
+            var keySwatches = vis.selectAll("rect.swatch")
+                .data(data)
+              .enter().append("rect")
+                .attr("class", "swatch")
+                .attr("width", 20)
+                .attr("height", 20)
+                .style("fill", function(d, i) {
+                  return color(i / (n - 1));
+                })
+                .attr("y", function (d, i) {
+                  return height + 36 + 30*(i%3);
+                })
+                .attr("x", function (d, i) {
+                  return 155 * Math.floor(i/3);
+                });
 
 
             // Animate between grouped and stacked
             // ===================================
+
             function transitionGroup() {
               vis.selectAll("g.layer rect")
                 .transition()
@@ -264,6 +295,11 @@
             fin[idMap[datum.commit.author.name]][curDay].y += 1;
             fin[0][curDay].date = humanReadableDate(date);
           });
+
+          // add author names to data for the chart's key
+          for (i = 0; i < uniqueUsers.length; i++) {
+            fin[i][0].user = uniqueUsers[i];
+          }
           $scope.data = fin;
           $scope.error = '';
         }).
