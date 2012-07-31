@@ -232,15 +232,15 @@
     // controller business logic
     app.controller('AppCtrl', function ($scope, $http) {
 
-      $scope.user = 'btford';
+      $scope.user = 'angular';
       $scope.repo = 'angular.js';
 
       // helper for formatting date
       var humanReadableDate = function (d) {
-        return d.getUTCMonth() + '/' + d.getUTCDay();
+        return d.getUTCMonth() + '/' + d.getUTCDate();
       };
 
-      $scope.getTheData = function () {
+      $scope.getCommitData = function () {
         $http({
           method: 'GET',
           url:'https://api.github.com/repos/' +
@@ -250,7 +250,7 @@
             '/commits'
         }).
         success(function (data) {
-
+          // sort the data by author date (rather than commit date)
           data = data.sort(function (a, b) {
             if (new Date(a.commit.author.date) > new Date(b.commit.author.date)) {
               return -1;
@@ -264,7 +264,7 @@
 
           var days = Math.floor((dateN - date0)/(1000 * 3600 * 24)) + 1;
 
-          var lastDay;
+          // get a list of authors
           var uniqueUsers = [];
           idMap = {};
           data.forEach(function (datum) {
@@ -309,7 +309,7 @@
       };
 
       // populate it immediately
-      $scope.getTheData();
+      $scope.getCommitData();
     });
   </script>
 </head>
@@ -317,8 +317,8 @@
   <h1>Github Commit Graph</h1>
 
   <p>
-    User: <input ng-change="getTheData()" ng-model="user"></input>
-    Repo: <input ng-change="getTheData()" ng-model="repo"></input>
+    User: <input ng-change="getCommitData()" ng-model="user"></input>
+    Repo: <input ng-change="getCommitData()" ng-model="repo"></input>
     Grouped <input type="checkbox" ng-model="grouped">
   </p>
 
