@@ -31,7 +31,7 @@
 
     // register d3 as a service so we can inject it
     app.factory('d3', function () {
-      return window.d3; //TODO: ask Igor how I should reference the D3 global
+      return d3;
     });
 
     app.directive('visualization', function (d3) {
@@ -39,7 +39,8 @@
       // constants
       var margin = 20,
         width = 960,
-        height = 500 - .5 - margin;
+        height = 500 - .5 - margin,
+        color = d3.interpolateRgb("#f77", "#77f");
 
       return {
         restrict: 'E',
@@ -69,8 +70,7 @@
             // Based on: http://mbostock.github.com/d3/ex/stack.html
             var n = newVal.length, // number of layers
                 m = newVal[0].length, // number of samples per layer
-                data = d3.layout.stack()(newVal),
-                color = d3.interpolateRgb("#f77", "#77f");
+                data = d3.layout.stack()(newVal);
             
             var mx = m,
                 my = d3.max(data, function(d) {
@@ -88,6 +88,9 @@
                 y1 = function(d) { return height - (d.y + d.y0) * height / my; },
                 y2 = function(d) { return d.y * height / mz; }; // or `my` not rescale
             
+            // Layers for each color
+            // =====================
+
             var layers = vis.selectAll("g.layer")
                 .data(data)
               .enter().append("g")
@@ -95,6 +98,9 @@
                   return color(i / (n - 1));
                 })
                 .attr("class", "layer");
+
+            // Bars
+            // ====
             
             var bars = layers.selectAll("g.bar")
                 .data(function(d) { return d; })
