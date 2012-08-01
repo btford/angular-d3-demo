@@ -103,7 +103,7 @@ d3DemoApp.controller('AppCtrl', function AppCtrl ($scope, $http) {
 });
 
 
-d3DemoApp.directive('visualization', function () {
+d3DemoApp.directive('GhVisualization', function () {
 
   // constants
   var margin = 20,
