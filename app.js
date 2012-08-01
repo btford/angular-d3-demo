@@ -103,7 +103,7 @@ d3DemoApp.controller('AppCtrl', function AppCtrl ($scope, $http) {
 });
 
 
-d3DemoApp.directive('GhVisualization', function () {
+d3DemoApp.directive('ghVisualization', function () {
 
   // constants
   var margin = 20,
@@ -115,8 +115,8 @@ d3DemoApp.directive('GhVisualization', function () {
     restrict: 'E',
     terminal: true,
     scope: {
-      val: '=val',
-      grouped: '=grouped'
+      val: '=',
+      grouped: '='
     },
     link: function (scope, element, attrs) {
 
@@ -290,6 +290,7 @@ d3DemoApp.directive('GhVisualization', function () {
 
         // setup a watch on 'grouped' to switch between views
         scope.$watch('grouped', function (newVal, oldVal) {
+          // ignore first call which happens before we even have data from the Github API
           if (newVal === oldVal) {
             return;
           }

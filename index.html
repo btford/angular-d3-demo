@@ -25,18 +25,22 @@
       font-weight: 300;
       margin-bottom: .3em;
     }
+    .error {
+      color: red;
+    }
   </style>
 </head>
 <body ng-controller="AppCtrl">
   <h1>Github Commit Graph</h1>
 
-  <div>
-    User: <input ng-change="getCommitData()" ng-model="user"></input>
-    Repo: <input ng-change="getCommitData()" ng-model="repo"></input>
+  <form ng-submit="getCommitData()">
+    User: <input ng-model="user"></input>
+    Repo: <input ng-model="repo"></input>
+    <input type="submit" value="Get Data">
     Grouped <input type="checkbox" ng-model="grouped">
-  </div>
+  </form>
   
-  <p>{{error}}</p>
+  <p class="error">{{error}}</p>
   <gh-visualization val="data" grouped="grouped"></gh-visualization>
 </body>
 </html>
