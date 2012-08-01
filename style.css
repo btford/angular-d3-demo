@@ -1,0 +1,21 @@
+body {
+  font: 14px Helvetica Neue;
+  text-rendering: optimizeLegibility;
+  margin-top: 1em;
+  overflow-y: scroll;
+}
+.label {
+  font-size: .65em;
+}
+body {
+  width: 960px;
+  margin: auto;
+}
+h1 {
+  font-size: 36px;
+  font-weight: 300;
+  margin-bottom: .3em;
+}
+.error {
+  color: red;
+}
