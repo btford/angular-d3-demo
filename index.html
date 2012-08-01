@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html ng-app="myApp">
+<html ng-app="d3DemoApp">
 <head>
   <meta charset="utf-8">
   <title>AngularJS + D3.js</title>
@@ -26,15 +26,16 @@
     }
   </style>
   <script>
+    'use strict';
+
     // create module for custom directives
-    var app = angular.module('myApp', []);
+    var d3DemoApp = angular.module('d3DemoApp', []);
 
-    // register d3 as a service so we can inject it
-    app.factory('d3', function () {
-      return d3;
-    });
+    d3DemoApp.config(function ($httpProvider) {
+      $httpProvider.defaults.headers.common['X-Requested-With'] = undefined;
+    })
 
-    app.directive('visualization', function (d3) {
+    d3DemoApp.directive('visualization', function () {
 
       // constants
       var margin = 20,
@@ -236,7 +237,7 @@
     });
 
     // controller business logic
-    app.controller('AppCtrl', function ($scope, $http) {
+    d3DemoApp.controller('AppCtrl', function AppCtrl ($scope, $http) {
 
       $scope.user = 'angular';
       $scope.repo = 'angular.js';
