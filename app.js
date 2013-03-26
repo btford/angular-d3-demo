@@ -1,5 +1,22 @@
 'use strict';
 
+// Utility array method for filtering out duplicates
+Array.prototype.uniq = function uniq() {
+  return this.reduce(function(accum, cur) { 
+    if (accum.indexOf(cur) === -1) accum.push(cur); 
+    return accum; 
+  }, [] );
+}
+
+// returns the first element of the array for which lambda(arr_element) is true.
+Array.prototype.find = function find(lambda) {
+  for (var i=0; i<this.length; i++)
+    if ( lambda(this[i]) ) 
+      return this[i];
+  return -1;
+}
+
+
 // create module for custom directives
 var d3DemoApp = angular.module('d3DemoApp', []);
 
@@ -17,60 +34,46 @@ d3DemoApp.controller('AppCtrl', function AppCtrl ($scope, $http) {
 
   // helper for reformatting the Github API response into a form we can pass to D3
   var reformatGithubResponse = function (data) {
+    
+    var MILLISECONDS_PER_DAY = 86400000;
+
     // sort the data by author date (rather than commit date)
-    data.sort(function (a, b) {
-      if (new Date(a.commit.author.date) > new Date(b.commit.author.date)) {
-        return -1;
-      } else {
-        return 1;
-      }
-    });
+    data.sort(function (a, b) { return (new Date(a.commit.author.date) > new Date(b.commit.author.date)) ? -1 : 1 });
 
     // date objects representing the first/last commit dates
     var date0 = new Date(data[data.length - 1].commit.author.date);
     var dateN = new Date(data[0].commit.author.date);
 
     // the number of days between the first and last commit
-    var days = Math.floor((dateN - date0) / 86400000) + 1;
+    var numDays = Math.floor((dateN - date0) / MILLISECONDS_PER_DAY) + 1;
+    
+    // array of every author name, without duplicates
+    var uniqueAuthors = data.map(function(elm) {return elm.commit.author.name}).uniq();
 
-    // map authors and indexes
-    var uniqueAuthors = []; // map index -> author
-    var authorMap = {}; // map author -> index
-    data.forEach(function (datum) {
-      var name = datum.commit.author.name;
-      if (uniqueAuthors.indexOf(name) === -1) {
-        authorMap[name] = uniqueAuthors.length;
-        uniqueAuthors.push(name);
-      }
+    // what we'll finally be returning to d3
+    // creates an array of all possible day objects for each author, initializing the commit counts (y) to 0
+    var formattedData = uniqueAuthors.map(function(author) { 
+      var allDays = d3.range(numDays).map(function(dayIndex) { return {x: dayIndex, y: 0} });
+      allDays[0].user = author; // add the author's name to first record only
+      return allDays;
     });
 
-    // build up the data to be passed to our d3 visualization
-    var formattedData = [];
-    formattedData.length = uniqueAuthors.length;
-    var i, j;
-    for (i = 0; i < formattedData.length; i++) {
-      formattedData[i] = [];
-      formattedData[i].length = days;
-      for (j = 0; j < formattedData[i].length; j++) {
-        formattedData[i][j] = {
-          x: j,
-          y: 0
-        };
-      }
-    }
-    data.forEach(function (datum) {
-      var date = new Date(datum.commit.author.date);
-      var curDay = Math.floor((date - date0) / 86400000);
-      formattedData[authorMap[datum.commit.author.name]][curDay].y += 1;
-      formattedData[0][curDay].date = humanReadableDate(date);
-    });
+    // given an author commit date, get the day number in the timeline of all commits
+    var dayIndexFromDate = function(d) { return Math.floor((new Date(d) - date0) / MILLISECONDS_PER_DAY); }
 
-    // add author names to data for the chart's key
-    for (i = 0; i < uniqueAuthors.length; i++) {
-      formattedData[i][0].user = uniqueAuthors[i];
-    }
+    // now we loop through the unformattedRecords, which each represent one commit, find the 
+    // corrresponding formatted record, and increment its count (y) by 1.  We also add a date string
+    // which will be used as a label.
+    data.forEach(function(datum) {
+      var curDayIndex = dayIndexFromDate(datum.commit.author.date);
+      var curAuthorAllDays = formattedData.find(function(arr) { return arr[0].user === datum.commit.author.name });
+      var dayToIncrement = curAuthorAllDays.find(function(day) { return day.x === curDayIndex });
+      dayToIncrement.y += 1;
+      dayToIncrement.date = humanReadableDate(new Date(datum.commit.author.date));
+    });
 
     return formattedData;
+
   };
 
   $scope.getCommitData = function () {
@@ -304,3 +307,4 @@ d3DemoApp.directive('ghVisualization', function () {
     }
   }
 });
+
