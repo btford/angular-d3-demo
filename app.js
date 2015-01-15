@@ -12,7 +12,7 @@ d3DemoApp.controller('AppCtrl', function AppCtrl ($scope, $http) {
 
   // helper for formatting date
   var humanReadableDate = function (d) {
-    return d.getUTCMonth() + '/' + d.getUTCDate();
+    return d.getUTCMonth()+1 + '/' + d.getUTCDate();
   };
 
   // helper for reformatting the Github API response into a form we can pass to D3
